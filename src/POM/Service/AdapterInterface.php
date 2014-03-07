@@ -7,9 +7,9 @@
 namespace POM\Services;
 
 /**
- * Interface ServiceAdapterInterface
+ * Interface AdapterInterface
  * @package POM\Services
  */
-interface ServiceAdapterInterface {
+interface AdapterInterface {
 
 }

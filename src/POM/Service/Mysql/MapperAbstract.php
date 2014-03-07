@@ -4,21 +4,29 @@
  * @version 060320141837
  */
 
-namespace Bleetz\Service\Mysql;
+namespace POM\Service\Mysql;
 
-use POM\DomainObject\DomainObjectInterface;
-use POM\Mapper\DataMapperAbstract;
+use POM\DomainObjectInterface;
 
 /**
  * Class MapperAbstract
- * @package Bleetz\Service\Mysql
+ * @package POM\Service\Mysql
  */
-abstract class MapperAbstract extends DataMapperAbstract {
+abstract class MapperAbstract extends \POM\MapperAbstract {
 
 	/**
-	 * @var \PDO
+	 * @var Adapter
 	 */
 	protected $service;
+
+	/**
+	 * @param Adapter $service
+	 * @param string $entityTable
+	 * @param array|string $entityPrimaries
+	 */
+	public function __construct(Adapter $service, $entityTable, $entityPrimaries) {
+		parent::__construct($service, $entityTable, $entityPrimaries);
+	}
 
 
 	/**

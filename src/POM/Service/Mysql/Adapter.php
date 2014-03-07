@@ -4,14 +4,14 @@
  * @version 070320141502
  */
 
-namespace Bleetz\Service\Mysql;
+namespace POM\Service\Mysql;
 
-use POM\Services\ServiceAdapterInterface;
+use POM\Services\AdapterInterface;
 
 /**
  * Class Adapter
- * @package Bleetz\Service\Mysql
+ * @package POM\Service\Mysql
  */
-class Adapter implements ServiceAdapterInterface {
+class Adapter implements AdapterInterface {
 
 }

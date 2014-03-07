@@ -4,11 +4,11 @@
  * @version 060320141210
  */
 
-namespace POM\DomainObject;
+namespace POM;
 
 /**
  * Interface CollectionInterface
- * @package POM\DomainObject
+ * @package POM
  */
 interface CollectionInterface extends \Countable, \IteratorAggregate {
 

@@ -4,7 +4,7 @@
  * @version 060320141144
  */
 
-namespace POM\DomainObject;
+namespace POM;
 
 /**
  * Interface DomainObjectInterface

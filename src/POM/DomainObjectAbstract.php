@@ -4,11 +4,11 @@
  * @version 060320141650
  */
 
-namespace POM\DomainObject;
+namespace POM;
 
 /**
  * Class DomainObjectAbstract
- * @package POM\DomainObject
+ * @package POM
  */
 abstract class DomainObjectAbstract extends \ArrayObject implements DomainObjectInterface {
 

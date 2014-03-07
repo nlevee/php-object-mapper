@@ -4,15 +4,13 @@
  * @version 060320141144
  */
 
-namespace POM\Mapper;
-
-use POM\DomainObject\DomainObjectInterface;
+namespace POM;
 
 /**
- * Interface DataMapperInterface
+ * Interface MapperInterface
  * @package POM
  */
-interface DataMapperInterface {
+interface MapperInterface {
 
 	/**
 	 * charge les donnée $data dans l'objet $object

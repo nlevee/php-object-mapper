@@ -4,21 +4,18 @@
  * @version 060320141634
  */
 
-namespace POM\Mapper;
+namespace POM;
 
-use POM\DomainObject\DomainObjectInterface;
-use POM\IdentityMap;
-use POM\IdentityMapInterface;
-use POM\Services\ServiceAdapterInterface;
+use POM\Services\AdapterInterface;
 
 /**
- * Class DataMapperAbstract
- * @package POM\Mapper
+ * Class MapperAbstract
+ * @package POM
  */
-abstract class DataMapperAbstract implements DataMapperInterface {
+abstract class MapperAbstract implements MapperInterface {
 
 	/**
-	 * @var ServiceAdapterInterface
+	 * @var AdapterInterface
 	 */
 	protected $service;
 
@@ -39,11 +36,11 @@ abstract class DataMapperAbstract implements DataMapperInterface {
 
 
 	/**
-	 * @param ServiceAdapterInterface $service
+	 * @param AdapterInterface $service
 	 * @param string $entityTable
 	 * @param array|string $entityPrimaries
 	 */
-	public function __construct(ServiceAdapterInterface $service, $entityTable, $entityPrimaries) {
+	public function __construct(AdapterInterface $service, $entityTable, $entityPrimaries) {
 		$this->service = $service;
 		$this->entityTable = $entityTable;
 		if (!is_array($entityPrimaries))
@@ -69,7 +66,7 @@ abstract class DataMapperAbstract implements DataMapperInterface {
 	}
 
 	/**
-	 * @return ServiceAdapterInterface
+	 * @return AdapterInterface
 	 */
 	public function getService() {
 		return $this->service;

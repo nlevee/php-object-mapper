@@ -4,11 +4,11 @@
  * @version 060320141701
  */
 
-namespace POM\DomainObject;
+namespace POM;
 
 /**
  * Class CollectionAbstract
- * @package POM\DomainObject
+ * @package POM
  */
 abstract class CollectionAbstract extends \ArrayObject implements CollectionInterface {
 
