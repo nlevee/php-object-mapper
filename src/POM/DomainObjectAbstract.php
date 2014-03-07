@@ -35,11 +35,11 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	 * @throws \LogicException
 	 * @return void
 	 */
-	public function initFromArray(array $dataset) {
+	public function populate(array $dataset) {
 		if (!empty($dataset)) {
 			foreach($this->getEditableProperties() as $propName){
 				if (isset($dataset[$propName]))
-					$this[$propName] = $dataset[$propName];
+					$this->offsetSet($propName, $dataset[$propName]);
 			}
 		}
 	}
@@ -137,8 +137,6 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	public function offsetSet($offset, $value) {
 		if ($this->offsetExists($offset))
 			$this->$offset = $value;
-		else
-			trigger_error("La propriété $offset n'existe pas");
 	}
 
 	/**

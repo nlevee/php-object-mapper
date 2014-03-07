@@ -16,7 +16,7 @@ $adapter = new \POM\Service\Mysql\Adapter();
 
 // new post
 $post = new \Exemple\DomainObject\Post();
-$post->initFromArray([
+$post->populate([
 	'title' => 'Nouveau post PHP',
 	'text' => '<p>le texte du post en HTML</p>',
 	'attribut' => 'inconnu'

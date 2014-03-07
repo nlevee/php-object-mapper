@@ -61,7 +61,7 @@ interface MapperInterface {
 	 * @param DomainObjectInterface $object
 	 * @return mixed
 	 */
-	public function update(DomainObjectInterface $object);
+	public function update(DomainObjectInterface &$object);
 
 	/**
 	 * Supprime l'objet de la DB, si l'objet n'existe pas déjà on renvoi un exception

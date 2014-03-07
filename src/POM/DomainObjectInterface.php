@@ -21,17 +21,11 @@ interface DomainObjectInterface extends \ArrayAccess, \IteratorAggregate {
 	public function getArrayCopy($modified_only = false);
 
 	/**
-	 * Renvoi la liste des propriétés editable
-	 * @return array
-	 */
-	public function getEditableProperties();
-
-	/**
 	 * Charge le model a partir d'un tableau de données
 	 * @param array $dataset [attribut => 'valeur', ...]
 	 * @return void
 	 */
-	public function initFromArray(array $dataset);
+	public function populate(array $dataset);
 
 	/**
 	 * Valide les donnée de l'objet

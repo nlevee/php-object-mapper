@@ -15,13 +15,6 @@ use POM\DomainObjectAbstract;
 class Post extends DomainObjectAbstract {
 
 	/**
-	 *
-	 */
-	public function __construct() {
-		$this->date_create = new \DateTime();
-	}
-
-	/**
 	 * @var string
 	 */
 	protected $id;

@@ -121,7 +121,7 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 * @param DomainObjectInterface $object
 	 * @return mixed
 	 */
-	public function update(DomainObjectInterface $object) {
+	public function update(DomainObjectInterface &$object) {
 		// TODO: Implement update() method.
 	}
 
