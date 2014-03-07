@@ -14,38 +14,36 @@ use POM\DomainObjectAbstract;
  */
 class Post extends DomainObjectAbstract {
 
-
 	/**
-	 * @var string
+	 *
 	 */
-	public $id;
-
-	/**
-	 * @var string
-	 */
-	public $title;
-
-	/**
-	 * @var string
-	 */
-	public $text;
-
-	/**
-	 * @var \DateTime
-	 */
-	public $date_create;
-
-	/**
-	 * @var \DateTime
-	 */
-	public $date_update;
-
-
-	/**
-	 * Valide les donnée de l'objet
-	 * @return bool
-	 */
-	public function validate() {
-		return true;
+	public function __construct() {
+		$this->date_create = new \DateTime();
 	}
+
+	/**
+	 * @var string
+	 */
+	protected $id;
+
+	/**
+	 * @var string
+	 */
+	protected $title;
+
+	/**
+	 * @var string
+	 */
+	protected $text;
+
+	/**
+	 * @var \DateTime
+	 */
+	protected $date_create;
+
+	/**
+	 * @var \DateTime
+	 */
+	protected $date_update;
+
 }

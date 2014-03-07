@@ -6,7 +6,7 @@
 
 namespace POM;
 
-use POM\Services\AdapterInterface;
+use POM\Service\AdapterInterface;
 
 /**
  * Class MapperAbstract

@@ -13,17 +13,25 @@ namespace POM;
 interface DomainObjectInterface extends \ArrayAccess, \IteratorAggregate {
 
 	/**
-	 * Renvoi une copie sous forme de tableau de l'objet
-	 * @return array
+	 * Renvoi une copie sous forme de tableau des propriété du model avec leur valeur
+	 * si $modified_only est true on renvoi uniquement les valeur modifiers depuis le dernier chargement
+	 * @param bool $modified_only
+	 * @return array [attribut => 'valeur', ...]
 	 */
-	public function getArrayCopy();
+	public function getArrayCopy($modified_only = false);
 
 	/**
-	 * Charge les données d'un tableau dans l'objet
-	 * @param array $data
+	 * Renvoi la liste des propriétés editable
+	 * @return array
+	 */
+	public function getEditableProperties();
+
+	/**
+	 * Charge le model a partir d'un tableau de données
+	 * @param array $dataset [attribut => 'valeur', ...]
 	 * @return void
 	 */
-	public function loadFromArray(array $data);
+	public function initFromArray(array $dataset);
 
 	/**
 	 * Valide les donnée de l'objet

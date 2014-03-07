@@ -6,7 +6,7 @@
 
 namespace POM\Service\Mysql;
 
-use POM\Services\AdapterInterface;
+use POM\Service\AdapterInterface;
 
 /**
  * Class Adapter

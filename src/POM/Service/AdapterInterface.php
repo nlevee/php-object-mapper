@@ -4,11 +4,11 @@
  * @version 070320141457
  */
 
-namespace POM\Services;
+namespace POM\Service;
 
 /**
  * Interface AdapterInterface
- * @package POM\Services
+ * @package POM\Service
  */
 interface AdapterInterface {
 
