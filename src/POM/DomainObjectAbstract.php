@@ -38,7 +38,8 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	public function initFromArray(array $dataset) {
 		if (!empty($dataset)) {
 			foreach($this->getEditableProperties() as $propName){
-				$this[$propName] = isset($dataset[$propName]) ? $dataset[$propName] : null;
+				if (isset($dataset[$propName]))
+					$this[$propName] = $dataset[$propName];
 			}
 		}
 	}
