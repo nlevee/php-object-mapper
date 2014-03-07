@@ -56,7 +56,7 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 */
 	public function fetchById($id, DomainObjectInterface &$object) {
 		if (!is_array($id))
-			$id = array($id);
+			$id = array_combine($this->getEntityPrimaries(), $id);
 		// on verifie que la map ne possede pas déja la clé
 		$identityKey = implode('-', $id);
 		if (!$this->getIdentityMap()->hasId($identityKey)) {

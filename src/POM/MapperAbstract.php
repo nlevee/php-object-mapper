@@ -62,7 +62,7 @@ abstract class MapperAbstract implements MapperInterface {
 	 * @return array
 	 */
 	public function getEntityPrimaries() {
-		return $this->$entityPrimaries;
+		return $this->entityPrimaries;
 	}
 
 	/**
