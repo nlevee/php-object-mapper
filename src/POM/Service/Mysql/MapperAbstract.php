@@ -62,10 +62,8 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 		if (!$this->getIdentityMap()->hasId($identityKey)) {
 			$condition = $this->getEntityCondition($id);
 			$query = 'SELECT * FROM ' . $this->getEntityTable() . ' WHERE ' . $condition[0];
-			$sth = $this->service->prepare($query);
-			$sth->execute($condition[1]);
 			// on ne sauvegarde les données que si elle sont rempli
-			if (!($data = $sth->fetch()))
+			if (!($data = $this->service->fetchOne($query, $condition[1])))
 				return false;
 			$this->populate($object, $data);
 			$this->getIdentityMap()->storeObject($identityKey, $object);
@@ -84,13 +82,15 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	public function removeById($id) {
 		if (!is_array($id))
 			$id = array_combine($this->getEntityPrimaries(), [$id]);
-		// on verifie que la map ne possede pas déja la clé
-		$identityKey = implode('-', $id);
-		$this->getIdentityMap()->removeObject($identityKey);
 		$condition = $this->getEntityCondition($id);
 		$query = 'DELETE FROM ' . $this->getEntityTable() . ' WHERE ' . $condition[0];
-		$sth = $this->service->prepare($query);
-		return $sth->execute($condition[1]);
+		if ($this->service->exec($query, $condition[1])) {
+			// on supprime l'objet de la map
+			$identityKey = implode('-', $id);
+			$this->getIdentityMap()->removeObject($identityKey);
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -132,6 +132,9 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 * @return mixed
 	 */
 	public function remove(DomainObjectInterface $object) {
-
+		$id = [];
+		foreach($this->getEntityPrimaries() as $primaryKey)
+			$id[$primaryKey] = $object[$primaryKey];
+		return empty($id) ? false : $this->removeById($id);
 	}
 }

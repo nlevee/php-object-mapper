@@ -7,8 +7,6 @@
 
 namespace POM\Service;
 
-use POM\Service\Mysql\Adapter;
-
 
 /**
  * Class AdapterFactory
@@ -19,5 +17,5 @@ class AdapterFactory {
 
 	public static function Mysql() {
 	}
-	
-} 
+
+}
