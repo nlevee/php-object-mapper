@@ -100,17 +100,54 @@ class Adapter implements AdapterInterface {
 		$stmt->setFetchMode(\PDO::FETCH_COLUMN, $column);
 		return new Cursor($stmt);
 	}
-
+	
 	/**
-	 * Effectue une requete et renvoi le nobre de ligne affecté
-	 * @param string $query
-	 * @param array $bind
+	 * Execute une liste de requete dans une transaction et renvoi le nombre total de ligne affecté
+	 * si $lastInsertId est fourni il est rempli avec le dernier ID inséré
+	 * @param array $queryList [ ['SQL QUERY', ['PARAM'=>'VALUE', ...]], 'SQL QUERY', ... ]
+	 * @param int $lastInsertId
 	 * @return int
 	 */
-	public function exec($query, array $bind = array()) {
+	public function execInTransaction(array $queryList, &$lastInsertId = null) {
+		try {
+			$rowCount = 0;
+			$this->_dbHandler->beginTransaction();
+			foreach ($queryList as $queryParam) {
+				if (is_string($queryParam))
+					$rowCount += $this->exec($queryParam, []);
+				elseif(is_array($queryParam)) 
+					$rowCount += $this->exec($queryParam[0], $queryParam[1]);
+			}
+			$this->_dbHandler->commit();
+			$lastInsertId = $this->_dbHandler->lastInsertId();
+		} catch(\PDOExecption $e) {
+			$this->_dbHandler->rollback();
+			throw $e;
+		}
+		return $rowCount;
+	}
+
+	/**
+	 * Effectue une requete et renvoi le nobre de ligne affecté, 
+	 * si $lastInsertId est fourni il est rempli avec le dernier ID inséré
+	 * @param string $query
+	 * @param array $bind
+	 * @param int $lastInsertId
+	 * @return int
+	 */
+	public function exec($query, array $bind = array(), &$lastInsertId = null) {
 		$stmt = $this->getStatementForQuery($query);
 		$stmt->execute($bind);
+		$lastInsertId = $this->_dbHandler->lastInsertId();
 		return $stmt->rowCount();
+	}
+	
+	/**
+	 * Renvoi l'instance de DBHandler
+	 * @return \PDO
+	 */
+	public function getDbHandler() {
+		return $this->_dbHandler;
 	}
 
 
