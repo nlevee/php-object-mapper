@@ -15,14 +15,14 @@ abstract class CollectionAbstract extends \ArrayObject implements CollectionInte
 	/**
 	 * @var string
 	 */
-	protected $modelClassName;
+	protected $modelClassName = '\POM\DomainObjectInterface';
 
 
 	/**
 	 * @param string $domainObjectClass
 	 * @throws \InvalidArgumentException
 	 */
-	public function __construct($domainObjectClass = '\DMM\BaseDomainModel') {
+	public function __construct($domainObjectClass = '\POM\DomainObjectInterface') {
 		if (class_exists($domainObjectClass)) {
 			$this->modelClassName = $domainObjectClass;
 		} else {
