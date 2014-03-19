@@ -35,17 +35,31 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 * @return array (SQL_WHERE, BINDINGS)
 	 */
 	private function getEntityCondition(array $entities) {
+		$primaries = $this->getEntityPrimaries();
+		foreach($entities as $entity=>&$value) {
+			if (!in_array($entity, $primaries))
+				$value = null;
+		}
+		return $this->getCondition(array_filter($entities));
+	}
+
+	/**
+	 * Returns the SQL condition
+	 * @param array $entities
+	 * @param string $glue default ' AND '
+	 * @return array (SQL_WHERE, BINDINGS)
+	 */
+	private function getCondition(array $entities, $glue = ' AND ') {
 		$bindings = $conditions = array();
 		foreach ($entities as $key => $value) {
-			if (in_array($key, $this->getEntityPrimaries())) {
-				$placeholder = strtolower($key);
-				$conditions[] = sprintf("`%s` = :$placeholder", $key);
-				$bindings[$placeholder] = $value;
-			}
+			$placeholder = strtolower($key);
+			$conditions[] = sprintf("`%s` = :$placeholder", $key);
+			$bindings[$placeholder] = $value;
 		}
-		$sql = implode(' AND ', $conditions);
+		$sql = implode($glue, $conditions);
 		return array($sql, $bindings);
 	}
+
 
 	/**
 	 * Charge les données dans $object de l'element trouvé via son id,
@@ -100,7 +114,13 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 * @return bool
 	 */
 	public function save(DomainObjectInterface &$object) {
-		// TODO: Implement save() method.
+		$aEntityList = array_filter($object->getArrayCopy());
+		list(, $bindings) = $this->getEntityCondition($aEntityList);
+		if (!empty($bindings)) {
+			$query = 'REPLACE INTO ' . $this->getEntityTable() . ' (`'.implode('`, `', array_keys($aEntityList)).'`) VALUES (:'.implode(', :', array_keys($aEntityList)).')';
+			return $this->service->exec($query, $aEntityList);
+		}
+		return $this->insert($object);
 	}
 
 	/**
@@ -131,13 +151,9 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 		$aEntityList = array_filter($object->getArrayCopy());
 		list($condition, $bindings) = $this->getEntityCondition($aEntityList);
 		if (!empty($condition) && !empty($bindings)) {
-			$update = [];
 			$entities = array_keys(array_diff_key($aEntityList, $bindings));
-			foreach ($entities as $key) {
-				$placeholder = strtolower($key);
-				$update[] = sprintf("`%s` = :$placeholder", $key);
-			}
-			$query = 'UPDATE ' . $this->getEntityTable() . ' SET ' . implode(', ', $update) . ' WHERE ' . $condition;
+			list($update, ) = $this->getCondition($entities, ', ');
+			$query = 'UPDATE ' . $this->getEntityTable() . ' SET ' . $update . ' WHERE ' . $condition;
 			return $this->service->exec($query, $aEntityList);
 		}
 		return false;
