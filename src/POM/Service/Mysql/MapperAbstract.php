@@ -111,7 +111,13 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 * @return bool
 	 */
 	public function insert(DomainObjectInterface &$object) {
-		// TODO: Implement insert() method.
+		$aEntityList = array_filter($object->getArrayCopy());
+		$query = 'INSERT INTO ' . $this->getEntityTable() . ' (`'.implode('`, `', array_keys($aEntityList)).'`) VALUES (:'.implode(', :', array_keys($aEntityList)).')';
+		if ($this->service->exec($query, $aEntityList, $insertId)) {
+			$this->populate($object, array_combine($this->getEntityPrimaries(), [$insertId]));
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -122,7 +128,19 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 * @return mixed
 	 */
 	public function update(DomainObjectInterface &$object) {
-		// TODO: Implement update() method.
+		$aEntityList = array_filter($object->getArrayCopy());
+		list($condition, $bindings) = $this->getEntityCondition($aEntityList);
+		if (!empty($condition) && !empty($bindings)) {
+			$update = [];
+			$entities = array_keys(array_diff_key($aEntityList, $bindings));
+			foreach ($entities as $key) {
+				$placeholder = strtolower($key);
+				$update[] = sprintf("`%s` = :$placeholder", $key);
+			}
+			$query = 'UPDATE ' . $this->getEntityTable() . ' SET ' . implode(', ', $update) . ' WHERE ' . $condition;
+			return $this->service->exec($query, $aEntityList);
+		}
+		return false;
 	}
 
 	/**

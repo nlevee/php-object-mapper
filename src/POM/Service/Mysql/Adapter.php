@@ -40,9 +40,9 @@ class Adapter implements AdapterInterface {
 		$this->_dbAccess['user'] = $user;
 		$this->_dbAccess['pass'] = $pass;
 		$this->_dbAccess['opts'] = array_merge(array(
-				\PDO::MYSQL_ATTR_FOUND_ROWS => true,
-				\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-				\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
+			\PDO::MYSQL_ATTR_FOUND_ROWS => true,
+			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+			\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
 		), $opts);
 		// on utilise une identity map pour stocké les statements afin de les réutiliser
 		$this->_stmtMap = new IdentityMap();
@@ -69,7 +69,7 @@ class Adapter implements AdapterInterface {
 	 * @return array
 	 */
 	public function fetchOne($query, array $bind = array()) {
-		return $this->fetch($query, $bind)->current();
+		return ($cursor = $this->fetch($query, $bind)) ? $cursor->current() : [];
 	}
 
 	/**
@@ -82,9 +82,12 @@ class Adapter implements AdapterInterface {
 	public function fetch($query, array $bind = array()) {
 		// execution de la nouvelle requete
 		$stmt = $this->getStatementForQuery($query);
-		$stmt->execute($bind);
-		$stmt->setFetchMode(\PDO::FETCH_ASSOC);
-		return new Cursor($stmt);
+		!$bind ?: $this->bindValue($stmt, $bind);
+		if ($stmt->execute()) {
+			$stmt->setFetchMode(\PDO::FETCH_ASSOC);
+			return new Cursor($stmt);
+		}
+		return null;
 	}
 
 	/**
@@ -92,20 +95,25 @@ class Adapter implements AdapterInterface {
 	 * @param int|string $column
 	 * @param string $query
 	 * @param array $bind
-	 * @return Cursor
+	 * @return Cursor|null
 	 */
 	public function fetchColumn($column, $query, array $bind = array()) {
 		$stmt = $this->getStatementForQuery($query);
-		$stmt->execute($bind);
-		$stmt->setFetchMode(\PDO::FETCH_COLUMN, $column);
-		return new Cursor($stmt);
+		!$bind ?: $this->bindValue($stmt, $bind);
+		if ($stmt->execute()) {
+			$stmt->setFetchMode(\PDO::FETCH_COLUMN, $column);
+			return new Cursor($stmt);
+		}
+		return null;
 	}
-	
+
 	/**
 	 * Execute une liste de requete dans une transaction et renvoi le nombre total de ligne affecté
 	 * si $lastInsertId est fourni il est rempli avec le dernier ID inséré
 	 * @param array $queryList [ ['SQL QUERY', ['PARAM'=>'VALUE', ...]], 'SQL QUERY', ... ]
 	 * @param int $lastInsertId
+	 * @throws \Exception
+	 * @throws \PDOException
 	 * @return int
 	 */
 	public function execInTransaction(array $queryList, &$lastInsertId = null) {
@@ -115,12 +123,12 @@ class Adapter implements AdapterInterface {
 			foreach ($queryList as $queryParam) {
 				if (is_string($queryParam))
 					$rowCount += $this->exec($queryParam, []);
-				elseif(is_array($queryParam)) 
+				elseif (is_array($queryParam))
 					$rowCount += $this->exec($queryParam[0], $queryParam[1]);
 			}
 			$this->_dbHandler->commit();
 			$lastInsertId = $this->_dbHandler->lastInsertId();
-		} catch(\PDOExecption $e) {
+		} catch (\PDOException $e) {
 			$this->_dbHandler->rollback();
 			throw $e;
 		}
@@ -128,7 +136,7 @@ class Adapter implements AdapterInterface {
 	}
 
 	/**
-	 * Effectue une requete et renvoi le nobre de ligne affecté, 
+	 * Effectue une requete et renvoi le nobre de ligne affecté,
 	 * si $lastInsertId est fourni il est rempli avec le dernier ID inséré
 	 * @param string $query
 	 * @param array $bind
@@ -137,11 +145,14 @@ class Adapter implements AdapterInterface {
 	 */
 	public function exec($query, array $bind = array(), &$lastInsertId = null) {
 		$stmt = $this->getStatementForQuery($query);
-		$stmt->execute($bind);
-		$lastInsertId = $this->_dbHandler->lastInsertId();
-		return $stmt->rowCount();
+		!$bind ?: $this->bindValue($stmt, $bind);
+		if ($stmt->execute()) {
+			$lastInsertId = $this->_dbHandler->lastInsertId();
+			return $stmt->rowCount();
+		}
+		return 0;
 	}
-	
+
 	/**
 	 * Renvoi l'instance de DBHandler
 	 * @return \PDO
@@ -164,6 +175,25 @@ class Adapter implements AdapterInterface {
 		} else
 			$stmt = $this->_stmtMap->getObject($query);
 		return $stmt;
+	}
+
+	/**
+	 * Assign a un statement les bind
+	 * @param \PDOStatement $stmt
+	 * @param array $bind
+	 * @return void
+	 */
+	protected function bindValue(\PDOStatement &$stmt, array $bind) {
+		foreach($bind as $k => $v) {
+			$sValueType = \PDO::PARAM_STR;
+			if (is_numeric($v))
+				$sValueType = \PDO::PARAM_INT;
+			elseif (is_null($v))
+				$sValueType = \PDO::PARAM_NULL;
+			elseif ($v instanceof \DateTime)
+				$v = $v->format("Y-m-d H:i:s");
+			$stmt->bindValue((is_numeric($k) ? $k+1 : $k), $v, $sValueType);
+		}
 	}
 
 }
