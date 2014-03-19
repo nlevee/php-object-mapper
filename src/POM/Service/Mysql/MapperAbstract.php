@@ -32,7 +32,7 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	/**
 	 * Returns the SQL condition to identity this model
 	 * @param array $entities
-	 * @return array (SQL_WHERE, BINDINGS)
+	 * @return array (SQL_WHERE, BINDINGS, IDMAP)
 	 */
 	private function getEntityCondition(array $entities) {
 		$primaries = $this->getEntityPrimaries();
@@ -40,7 +40,8 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 			if (!in_array($entity, $primaries))
 				$value = null;
 		}
-		return $this->getCondition(array_filter($entities));
+		$entities = array_filter($entities);
+		return $this->getCondition($entities) + [implode('-', $entities)];
 	}
 
 	/**
@@ -57,6 +58,7 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 			$bindings[$placeholder] = $value;
 		}
 		$sql = implode($glue, $conditions);
+		ksort($bindings);
 		return array($sql, $bindings);
 	}
 
@@ -71,13 +73,12 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	public function fetchById($id, DomainObjectInterface &$object) {
 		if (!is_array($id))
 			$id = array_combine($this->getEntityPrimaries(), [$id]);
+		list($where, $bindings, $identityKey) = $this->getEntityCondition($id);
 		// on verifie que la map ne possede pas déja la clé
-		$identityKey = implode('-', $id);
 		if (!$this->getIdentityMap()->hasId($identityKey)) {
-			$condition = $this->getEntityCondition($id);
-			$query = 'SELECT * FROM ' . $this->getEntityTable() . ' WHERE ' . $condition[0];
+			$query = 'SELECT * FROM `' . $this->getEntityTable() . '` WHERE ' . $where;
 			// on ne sauvegarde les données que si elle sont rempli
-			if (!($data = $this->service->fetchOne($query, $condition[1])))
+			if (!($data = $this->service->fetchOne($query, $bindings)))
 				return false;
 			$this->populate($object, $data);
 			$this->getIdentityMap()->storeObject($identityKey, $object);
@@ -96,11 +97,10 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	public function removeById($id) {
 		if (!is_array($id))
 			$id = array_combine($this->getEntityPrimaries(), [$id]);
-		$condition = $this->getEntityCondition($id);
-		$query = 'DELETE FROM ' . $this->getEntityTable() . ' WHERE ' . $condition[0];
-		if ($this->service->exec($query, $condition[1])) {
+		list($where, $bindings, $identityKey) = $this->getEntityCondition($id);
+		$query = 'DELETE FROM `' . $this->getEntityTable() . '` WHERE ' . $where;
+		if ($this->service->exec($query, $bindings)) {
 			// on supprime l'objet de la map
-			$identityKey = implode('-', $id);
 			$this->getIdentityMap()->removeObject($identityKey);
 			return true;
 		}
@@ -117,7 +117,7 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 		$aEntityList = array_filter($object->getArrayCopy());
 		list(, $bindings) = $this->getEntityCondition($aEntityList);
 		if (!empty($bindings)) {
-			$query = 'REPLACE INTO ' . $this->getEntityTable() . ' (`'.implode('`, `', array_keys($aEntityList)).'`) VALUES (:'.implode(', :', array_keys($aEntityList)).')';
+			$query = 'REPLACE INTO `' . $this->getEntityTable() . '` (`'.implode('`, `', array_keys($aEntityList)).'`) VALUES (:'.implode(', :', array_keys($aEntityList)).')';
 			return $this->service->exec($query, $aEntityList);
 		}
 		return $this->insert($object);
@@ -132,9 +132,12 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 */
 	public function insert(DomainObjectInterface &$object) {
 		$aEntityList = array_filter($object->getArrayCopy());
-		$query = 'INSERT INTO ' . $this->getEntityTable() . ' (`'.implode('`, `', array_keys($aEntityList)).'`) VALUES (:'.implode(', :', array_keys($aEntityList)).')';
+		$query = 'INSERT INTO `' . $this->getEntityTable() . '` (`'.implode('`, `', array_keys($aEntityList)).'`) VALUES (:'.implode(', :', array_keys($aEntityList)).')';
 		if ($this->service->exec($query, $aEntityList, $insertId)) {
 			$this->populate($object, array_combine($this->getEntityPrimaries(), [$insertId]));
+			// insert en identityMap
+			list(, , $identityKey) = $this->getEntityCondition($object->getArrayCopy());
+			$this->getIdentityMap()->storeObject($identityKey, $object);
 			return true;
 		}
 		return false;
@@ -149,12 +152,16 @@ abstract class MapperAbstract extends \POM\MapperAbstract {
 	 */
 	public function update(DomainObjectInterface &$object) {
 		$aEntityList = array_filter($object->getArrayCopy());
-		list($condition, $bindings) = $this->getEntityCondition($aEntityList);
+		list($condition, $bindings, $identityKey) = $this->getEntityCondition($aEntityList);
 		if (!empty($condition) && !empty($bindings)) {
 			$entities = array_keys(array_diff_key($aEntityList, $bindings));
 			list($update, ) = $this->getCondition($entities, ', ');
-			$query = 'UPDATE ' . $this->getEntityTable() . ' SET ' . $update . ' WHERE ' . $condition;
-			return $this->service->exec($query, $aEntityList);
+			$query = 'UPDATE `' . $this->getEntityTable() . '` SET ' . $update . ' WHERE ' . $condition;
+			if ($this->service->exec($query, $aEntityList)) {
+				// insert en identityMap
+				$this->getIdentityMap()->storeObject($identityKey, $object);
+				return true;
+			}
 		}
 		return false;
 	}
