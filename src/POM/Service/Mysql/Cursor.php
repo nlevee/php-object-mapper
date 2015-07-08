@@ -32,6 +32,11 @@ class Cursor implements \Iterator {
 	 */
 	private $_total;
 
+	/**
+	 * @var array
+	 */
+	private $_callback;
+
 
 	/**
 	 * @param \PDOStatement $statement
@@ -49,6 +54,14 @@ class Cursor implements \Iterator {
 		$this->_statement->closeCursor();
 	}
 
+	/**
+	 * @param callable $callback
+	 * @param array $args
+	 */
+	public function setRowHandler(\Closure $callback, array $args = []) {
+		$this->_callback = [$callback, $args];
+	}
+
 
 	/**
 	 * Return the current element
@@ -56,6 +69,9 @@ class Cursor implements \Iterator {
 	 * @return mixed Can return any type.
 	 */
 	public function current() {
+		if ($this->_callback) {
+			return call_user_func_array($this->_callback[0], array_merge([$this->_row], $this->_callback[1]));
+		}
 		return $this->_row;
 	}
 

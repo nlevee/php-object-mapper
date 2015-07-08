@@ -18,4 +18,8 @@ class AdapterFactory {
 	public static function Mysql() {
 	}
 
+
+	public static function Mongo() {
+	}
+
 }

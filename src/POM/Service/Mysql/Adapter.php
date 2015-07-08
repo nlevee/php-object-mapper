@@ -25,6 +25,11 @@ class Adapter implements AdapterInterface {
 	 */
 	private $_dbHandler;
 
+	/**
+	 * @var string
+	 */
+	private $_charset = 'utf8';
+
 
 	/**
 	 * @param string $dsn
@@ -34,16 +39,18 @@ class Adapter implements AdapterInterface {
 	 * @throws \InvalidArgumentException
 	 */
 	public function __construct($dsn, $user, $pass, array $opts = array()) {
-		if (!$dsn || !preg_match("@^mysql:host=[^;]+;dbname=.+(;port=.+)?$@", $dsn))
+		if (!$dsn || !preg_match("@^mysql:@", $dsn))
 			throw new \InvalidArgumentException('Mysql DSN invalid, it must match : ^mysql:host=.+;dbname=.+$');
 		$this->_dbAccess['dsn'] = $dsn;
 		$this->_dbAccess['user'] = $user;
 		$this->_dbAccess['pass'] = $pass;
 		$this->_dbAccess['opts'] = array_merge(array(
+			\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
 			\PDO::MYSQL_ATTR_FOUND_ROWS => true,
 			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-			\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
 		), $opts);
+		if (!empty($opts['charset']))
+			$this->_charset = $opts['charset'];
 		// on utilise une identity map pour stocké les statements afin de les réutiliser
 		$this->_stmtMap = new IdentityMap();
 	}
@@ -60,6 +67,8 @@ class Adapter implements AdapterInterface {
 	 */
 	public function connect() {
 		$this->_dbHandler = new \PDO($this->_dbAccess['dsn'], $this->_dbAccess['user'], $this->_dbAccess['pass'], $this->_dbAccess['opts']);
+		if (!empty($this->_charset))
+			$this->exec("SET NAMES " . $this->_charset);
 	}
 
 	/**
@@ -118,6 +127,8 @@ class Adapter implements AdapterInterface {
 	 */
 	public function execInTransaction(array $queryList, &$lastInsertId = null) {
 		try {
+			if (!$this->_dbHandler)
+				$this->connect();
 			$rowCount = 0;
 			$this->_dbHandler->beginTransaction();
 			foreach ($queryList as $queryParam) {
@@ -146,11 +157,21 @@ class Adapter implements AdapterInterface {
 	public function exec($query, array $bind = array(), &$lastInsertId = null) {
 		$stmt = $this->getStatementForQuery($query);
 		!$bind ?: $this->bindValue($stmt, $bind);
-		if ($stmt->execute()) {
+		if ($result = $stmt->execute()) {
 			$lastInsertId = $this->_dbHandler->lastInsertId();
-			return $stmt->rowCount();
+			return $stmt->rowCount() ?: 1;
 		}
 		return 0;
+	}
+
+	/**
+	 * @param string $string
+	 * @return string
+	 */
+	public function quoteString($string) {
+		if (!$this->_dbHandler)
+			$this->connect();
+		return $this->_dbHandler->quote($string);
 	}
 
 	/**
@@ -170,6 +191,8 @@ class Adapter implements AdapterInterface {
 	protected function getStatementForQuery($query) {
 		// on verifie que le statement n'est pas deja présent
 		if (!$this->_stmtMap->hasId($query)) {
+			if (!$this->_dbHandler)
+				$this->connect();
 			$stmt = $this->_dbHandler->prepare($query);
 			$this->_stmtMap->storeObject($query, $stmt);
 		} else
@@ -184,15 +207,27 @@ class Adapter implements AdapterInterface {
 	 * @return void
 	 */
 	protected function bindValue(\PDOStatement &$stmt, array $bind) {
-		foreach($bind as $k => $v) {
+		$bind = array_map(function($value, $key){
 			$sValueType = \PDO::PARAM_STR;
-			if (is_numeric($v))
-				$sValueType = \PDO::PARAM_INT;
-			elseif (is_null($v))
+			if (is_numeric($value))
+				$value = (int) $value;
+			elseif ($value instanceof \DateTime)
+				$value = $value->format("Y-m-d H:i:s");
+
+			if (is_bool($value))
+				$sValueType = \PDO::PARAM_BOOL;
+			if (is_null($value))
 				$sValueType = \PDO::PARAM_NULL;
-			elseif ($v instanceof \DateTime)
-				$v = $v->format("Y-m-d H:i:s");
-			$stmt->bindValue((is_numeric($k) ? $k+1 : $k), $v, $sValueType);
+			elseif (is_numeric($value))
+				$sValueType = \PDO::PARAM_INT;
+
+			return [(is_numeric($key) ? $key+1 : $key), (string)$value, $sValueType];
+		}, $bind, array_keys($bind));
+
+		// lecture du binding
+		foreach($bind as $set) {
+			list($k, $v, $type) = $set;
+			$stmt->bindValue($k, $v, $type);
 		}
 	}
 

@@ -48,7 +48,8 @@ abstract class CollectionAbstract extends \ArrayObject implements CollectionInte
 	/**
 	 * Overridden method to ensure that only the correct type of models are added.
 	 * @see \ArrayObject::offsetSet()
-	 * @return void
+	 * @param mixed $offset
+	 * @param mixed $newval
 	 */
 	public function offsetSet($offset, $newval) {
 		$this->checkType($newval);

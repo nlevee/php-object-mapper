@@ -15,7 +15,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	/**
 	 * @var array
 	 */
-	private $_editableProperties;
+	private $_editableTypesProperties;
 
 
 	/**
@@ -24,9 +24,40 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	 * @return array
 	 */
 	public function getEditableProperties() {
-		return $this->_editableProperties ?: ($this->_editableProperties = array_map(function($property){
-			return $property->getName();
-		}, (new \ReflectionClass($this))->getProperties(\ReflectionProperty::IS_PROTECTED)));
+		return array_keys($this->getEditableTypesProperties());
+	}
+
+	/**
+	 * Renvoi la liste des type pour les valeur de properties,
+	 * par default les propriétés protected sont toutes editable
+	 * @return array
+	 */
+	public function getEditableTypesProperties() {
+		if ($this->_editableTypesProperties)
+			return $this->_editableTypesProperties;
+		$sNamespace = (new \ReflectionClass($this))->getNamespaceName();
+		$aProperties = (new \ReflectionClass($this))->getProperties(\ReflectionProperty::IS_PROTECTED);
+		foreach($aProperties as $property) {
+			$value = null;
+			try {
+				// on check le type déclaré
+				if (preg_match('#@var\s+([^\s]+)#i', $property->getDocComment(), $matches) === 1 && !empty($matches[1])) {
+					$detectType = $matches[1];
+					if (!in_array($detectType, ['int', 'float', 'string', 'boolean', 'bool', 'array', 'object'])) {
+						if ($detectType{0} !== '\\')
+							$detectType = $sNamespace . '\\' . $detectType;
+						$oClass = new \ReflectionClass($detectType);
+						// on assign une valeur uniquement si une class est instantiable
+						if ($oClass->isInstantiable()) {
+							$value = $detectType;
+						}
+						unset($oClass);
+					}
+				}
+			} catch (\ReflectionException $e) {  }
+			$this->_editableTypesProperties[$property->getName()] = $value;
+		}
+		return $this->_editableTypesProperties;
 	}
 
 	/**
@@ -37,7 +68,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	 */
 	public function populate(array $dataset) {
 		if (!empty($dataset)) {
-			foreach($this->getEditableProperties() as $propName){
+			foreach ($this->getEditableProperties() as $propName) {
 				if (isset($dataset[$propName]))
 					$this->offsetSet($propName, $dataset[$propName]);
 			}
@@ -52,7 +83,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	 */
 	public function getArrayCopy($modified_only = false) {
 		$aToArrayCopy = [];
-		foreach($this->getEditableProperties() as $propName){
+		foreach ($this->getEditableProperties() as $propName) {
 			$aToArrayCopy[$propName] = $this[$propName];
 		}
 		return $aToArrayCopy;
@@ -70,7 +101,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 
 	/**
 	 * Permet la verification d'une propriété via l'objet comme si les attribut était public :
-	 *	isset($model->attribut);
+	 *    isset($model->attribut);
 	 * @param string $offset
 	 * @return bool|void
 	 */
@@ -80,7 +111,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 
 	/**
 	 * permet l'edition de propriétés via l'objet comme si les attribut était public :
-	 * 	$model->attribut = 'new value';
+	 *    $model->attribut = 'new value';
 	 * @param string $offset
 	 * @param mixed $value
 	 */
@@ -90,7 +121,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 
 	/**
 	 * permet l'accès aux propriétés via l'objet comme si les attribut était public :
-	 * 	echo $model->attribut;
+	 *    echo $model->attribut;
 	 * @param string $offset
 	 * @return mixed|void
 	 */
@@ -100,7 +131,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 
 	/**
 	 * Permet la suppression d'une propriété via l'objet comme si les attribut était public :
-	 *	unset($model->attribut);
+	 *    unset($model->attribut);
 	 * @param string $offset
 	 */
 	public function __unset($offset) {
@@ -114,7 +145,7 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	 * @return bool|void
 	 */
 	public function offsetExists($offset) {
-		return in_array($offset, $this->_editableProperties);
+		return in_array($offset, $this->getEditableProperties());
 	}
 
 	/**
@@ -135,8 +166,13 @@ abstract class DomainObjectAbstract implements DomainObjectInterface {
 	 * @param mixed $value
 	 */
 	public function offsetSet($offset, $value) {
-		if ($this->offsetExists($offset))
+		if ($this->offsetExists($offset)) {
+			$aEditableTypes = $this->getEditableTypesProperties();
+			if (!empty($aEditableTypes[$offset])) {
+				$value = new $aEditableTypes[$offset]($value);
+			}
 			$this->$offset = $value;
+		}
 	}
 
 	/**

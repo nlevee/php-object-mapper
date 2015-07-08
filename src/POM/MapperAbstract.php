@@ -79,10 +79,7 @@ abstract class MapperAbstract implements MapperInterface {
 	 * @param array $data
 	 */
 	public function populate(DomainObjectInterface &$object, array $data) {
-		foreach($data as $k=>$v) {
-			if (isset($object[$k]))
-				$object[$k] = $v;
-		}
+		$object->populate($data);
 	}
 
 	/**
