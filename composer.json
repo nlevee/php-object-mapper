@@ -8,7 +8,9 @@
     }
   ],
   "require": {
-    "php": ">=5.4.0"
+    "php": ">=5.4.0",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*"
   },
   "autoload": {
     "psr-4": {
