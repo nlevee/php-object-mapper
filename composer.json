@@ -1,7 +1,18 @@
 {
     "name": "nlevee/php-object-mapper",
-    "version": "0.1.0",
+  "description": "Object Mapper",
+    "authors": [
+	    {
+	      "name": "Nicolas Levée",
+	      "email": "nicolas.levee@gmail.com"
+	    }
+	  ],
     "require": {
-        "php": ">=5.5.0"
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+    "psr-4": {
+      "POM\\": "src/"
     }
+  }
 }
